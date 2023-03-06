@@ -1,9 +1,12 @@
-import bme680
+from datetime import datetime
 import time
 import sqlite3
+
+import bme680
 from mics6814 import MICS6814
 
 db = sqlite3.connect('data.db')
+cursor = db.cursor()
 
 gas_wired = 0
 multi_wired = 1
@@ -26,6 +29,7 @@ if multi_wired:
 
 while True:
     record = {}
+    timestamp = datetime.now().strftime('%Y-%m-%d_%H:%M:%S')
 
     if gas_wired:
         readings = gas.read_all()
@@ -40,6 +44,11 @@ while True:
             record['bme680_gas_resist_kohms'] = sensor.data.gas_resistance / 1000
 
     if record:
-        print(record)
+        for key, value in record.items():
+            cursor.execute("""
+            INSERT INTO "main"."sensor_readings"("sensor_timestamp","sensor","sensor_value") 
+            VALUES (?,?,?);
+            """, (timestamp, key, value)
+            )
 
     time.sleep(1)
